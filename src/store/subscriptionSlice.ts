@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { SubscriptionState, Subscription, Transaction } from '../types/subscription';
+import { apiClient } from '../lib/api-client';
 
 const initialState: SubscriptionState = {
   subscriptions: [],
@@ -8,55 +9,31 @@ const initialState: SubscriptionState = {
   error: null,
 };
 
-// Simulated API calls
 export const fetchSubscriptions = createAsyncThunk(
   'subscriptions/fetchSubscriptions',
   async () => {
-    // Simulated API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return [
-      {
-        id: '1',
-        name: 'Netflix',
-        price: 14.99,
-        billingCycle: 'monthly',
-        nextBillingDate: '2024-03-15',
-        status: 'active',
-        icon: '📺',
-      },
-      {
-        id: '2',
-        name: 'Spotify',
-        price: 9.99,
-        billingCycle: 'monthly',
-        nextBillingDate: '2024-03-20',
-        status: 'active',
-        icon: '🎵',
-      },
-    ] as Subscription[];
+    try {
+      // Replace with your actual API endpoint
+      const response = await apiClient.get('/subscriptions');
+      return response.data;
+    } catch (error) {
+      // The error will be handled by the response interceptor
+      throw error;
+    }
   }
 );
 
 export const fetchTransactions = createAsyncThunk(
   'subscriptions/fetchTransactions',
   async () => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return [
-      {
-        id: '1',
-        subscriptionId: '1',
-        amount: 14.99,
-        date: '2024-02-15',
-        status: 'completed',
-      },
-      {
-        id: '2',
-        subscriptionId: '2',
-        amount: 9.99,
-        date: '2024-02-20',
-        status: 'completed',
-      },
-    ] as Transaction[];
+    try {
+      // Replace with your actual API endpoint
+      const response = await apiClient.get('/transactions');
+      return response.data;
+    } catch (error) {
+      // The error will be handled by the response interceptor
+      throw error;
+    }
   }
 );
 
