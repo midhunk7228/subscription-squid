@@ -10,6 +10,9 @@ export const apiClient = axios.create({
   },
 });
 
+// Define public routes that don't need authentication
+const publicRoutes = ['/register', '/login'];
+
 // Function to set auth token
 export const setAuthToken = (token: string) => {
   if (token) {
@@ -30,7 +33,12 @@ if (token) {
 // Request interceptor
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Token will be automatically added from defaults if it exists
+    // Skip adding token for public routes
+    const isPublicRoute = publicRoutes.some(route => config.url?.includes(route));
+    if (isPublicRoute) {
+      // Remove any existing Authorization header for public routes
+      delete config.headers.Authorization;
+    }
     return config;
   },
   (error: AxiosError) => {
@@ -123,7 +131,8 @@ apiClient.interceptors.response.use(
 
     // Handle HTTP errors
     const status = error.response.status;
-    const errorMessage = error.response.data?.message || 'An error occurred';
+    const errorData = error.response.data as { message?: string };
+    const errorMessage = errorData?.message || 'An error occurred';
 
     switch (status) {
       case 400:
