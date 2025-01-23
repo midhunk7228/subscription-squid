@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 
 // Create axios instance with default config
 export const apiClient = axios.create({
-  // Using relative URL for local development
   baseURL: '/api',
   timeout: 10000,
   headers: {
@@ -11,14 +10,27 @@ export const apiClient = axios.create({
   },
 });
 
+// Function to set auth token
+export const setAuthToken = (token: string) => {
+  if (token) {
+    localStorage.setItem('token', token);
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    localStorage.removeItem('token');
+    delete apiClient.defaults.headers.common['Authorization'];
+  }
+};
+
+// Initialize token from localStorage if it exists
+const token = localStorage.getItem('token');
+if (token) {
+  setAuthToken(token);
+}
+
 // Request interceptor
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // You can add auth token here
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // Token will be automatically added from defaults if it exists
     return config;
   },
   (error: AxiosError) => {
@@ -26,6 +38,30 @@ apiClient.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
+// Mock login function for development
+export const login = async (email: string, password: string) => {
+  try {
+    // In development, return mock data
+    const mockResponse = {
+      data: {
+        token: 'mock_jwt_token',
+        user: {
+          id: '1',
+          email: email,
+          name: 'Test User'
+        }
+      }
+    };
+
+    // Set the token in localStorage and axios defaults
+    setAuthToken(mockResponse.data.token);
+    
+    return mockResponse;
+  } catch (error) {
+    throw error;
+  }
+};
 
 // Response interceptor with mock data for development
 apiClient.interceptors.response.use(
@@ -86,6 +122,8 @@ apiClient.interceptors.response.use(
       switch (error.response.status) {
         case 401:
           toast.error('Unauthorized access. Please login again.');
+          // Clear token on 401 unauthorized
+          setAuthToken('');
           break;
         case 403:
           toast.error('Access forbidden.');
