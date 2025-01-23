@@ -63,14 +63,15 @@ export const login = async (email: string, password: string) => {
   }
 };
 
-// Response interceptor with mock data for development
+// Response interceptor with error handling and mock data for development
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   (error: AxiosError) => {
-    // If there's no response, return mock data for development
+    // Handle network errors or no response
     if (!error.response) {
+      // Return mock data for development
       if (error.config?.url === '/subscriptions') {
         return Promise.resolve({
           data: [
@@ -115,33 +116,50 @@ apiClient.interceptors.response.use(
           ]
         });
       }
+
+      toast.error('Network error. Please check your connection.');
+      return Promise.reject(new Error('Network error'));
     }
 
-    // Handle actual API errors
-    if (error.response) {
-      switch (error.response.status) {
-        case 401:
-          toast.error('Unauthorized access. Please login again.');
-          // Clear token on 401 unauthorized
-          setAuthToken('');
-          break;
-        case 403:
-          toast.error('Access forbidden.');
-          break;
-        case 404:
-          toast.error('Resource not found.');
-          break;
-        case 500:
-          toast.error('Server error. Please try again later.');
-          break;
-        default:
-          toast.error('An error occurred. Please try again.');
-      }
-    } else if (error.request) {
-      toast.error('No response received from server.');
-    } else {
-      toast.error('Error setting up request.');
+    // Handle HTTP errors
+    const status = error.response.status;
+    const errorMessage = error.response.data?.message || 'An error occurred';
+
+    switch (status) {
+      case 400:
+        toast.error(`Bad Request: ${errorMessage}`);
+        break;
+      case 401:
+        toast.error('Session expired. Please login again.');
+        setAuthToken(''); // Clear token
+        break;
+      case 403:
+        toast.error('Access forbidden. You don\'t have permission.');
+        break;
+      case 404:
+        toast.error('Resource not found.');
+        break;
+      case 422:
+        toast.error(`Validation Error: ${errorMessage}`);
+        break;
+      case 429:
+        toast.error('Too many requests. Please try again later.');
+        break;
+      case 500:
+        toast.error('Server error. Please try again later.');
+        break;
+      default:
+        toast.error(`Error: ${errorMessage}`);
     }
+
+    // Log error for debugging
+    console.error('API Error:', {
+      status,
+      url: error.config?.url,
+      message: errorMessage,
+      data: error.response.data
+    });
+
     return Promise.reject(error);
   }
 );
